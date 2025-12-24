@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Login Admin — Data Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+    <style>
+        :root{
+            --bg:#06111a;
+            --card:#0f1728;
+            --accent:#38bdf8;
+            --accent2:#2dd4bf;
+            --danger: #ff6b6b;
+            --text:#e6f0f5;
+            --muted:#9aa7b2;
+            --radius:14px;
+        }
+
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{
+            display:flex;justify-content:center;align-items:center;height:100vh;
+            background-color: var(--bg);
+            /* NEW: Added a subtle background image */
+            background-image: linear-gradient(rgba(6, 17, 26, 0.9), rgba(6, 17, 26, 1)), url('https://images.unsplash.com/photo-1520085612449-f78a6356a8b7?q=80&w=2070&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            font-family:'Inter',sans-serif;color:var(--text);
+        }
+
+        .login-box{
+            width:360px;
+            background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
+            padding:38px 30px;
+            border-radius:var(--radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow:0 10px 40px rgba(2,6,23,0.6);
+            text-align:center;
+            position:relative;
+            animation:fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn{
+            from{opacity:0;transform:translateY(-15px);}
+            to{opacity:1;transform:translateY(0);}
+        }
+
+        .logo{
+            width:70px;height:70px;margin:0 auto 18px;
+            border-radius:14px;
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            display:flex;align-items:center;justify-content:center;
+            font-weight:800;font-size:20px;color:#021018;
+            box-shadow:0 0 25px rgba(56,189,248,0.3);
+        }
+
+        h2{margin-bottom:10px;font-size:22px;font-weight:700;}
+        p.desc{color:var(--muted);font-size:13px;margin-bottom:24px;}
+
+        /* --- NEW: Input group for icon positioning --- */
+        .input-group {
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+
+        input{
+            width:100%;
+            padding:12px 14px 12px 40px; /* Adjusted padding for icon */
+            border-radius:var(--radius);
+            border:1px solid rgba(255,255,255,0.1);
+            background:rgba(255,255,255,0.05);
+            color:var(--text);
+            font-size:15px;
+            transition:all 0.2s;
+        }
+
+        input:focus{
+            outline:none;
+            border-color:var(--accent);
+            box-shadow:0 0 8px rgba(56,189,248,0.4);
+            background:rgba(255,255,255,0.07);
+        }
+        
+        /* --- NEW: Password toggle icon style --- */
+        #togglePassword {
+            position: absolute;
+            right: 15px;
+            left: auto;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        #togglePassword:hover {
+            color: var(--accent);
+        }
+
+        button{
+            width:100%;
+            padding:12px;
+            border:none;
+            border-radius:var(--radius);
+            background:linear-gradient(135deg,var(--accent),var(--accent2));
+            color:#021018;
+            font-weight:700;
+            font-size:15px;
+            margin-top:10px;
+            cursor:pointer;
+            transition:transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover{
+            transform:translateY(-2px);
+            box-shadow:0 6px 18px rgba(56,189,248,0.4);
+        }
+        
+        /* --- NEW: Forgot password link --- */
+        .footer-links{
+            margin-top:18px;
+            font-size:13px;
+            color:var(--muted);
+        }
+        .footer-links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* --- NEW: Error message style --- */
+        #error-message {
+            color: var(--danger);
+            font-size: 13px;
+            margin-top: 15px;
+            display: none; /* Hidden by default */
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="login-box">
+        <div class="logo">DC</div>
+        <h2>Admin Login</h2>
+        <p class="desc">ระบบควบคุมห้อง Data Center</p>
+
+        <div class="input-group">
+            <i class="fa-solid fa-user"></i>
+            <input type="text" id="username" placeholder="Username">
+        </div>
+        
+        <div class="input-group">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="password" placeholder="Password">
+            <i class="fa-solid fa-eye" id="togglePassword"></i>
+        </div>
+
+        <div id="error-message"></div>
+
+        <button onclick="login()">เข้าสู่ระบบ</button>
+
+        <div class="footer-links">
+            <a href="#">ลืมรหัสผ่าน?</a>
+        </div>
+    </div>
+
+<script>
+    // --- NEW: Password Toggle Logic ---
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
+    const errorMessage = document.getElementById('error-message');
+
+    togglePassword.addEventListener('click', function (e) {
+        // toggle the type attribute
+        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+        password.setAttribute('type', type);
+        // toggle the eye / eye-slash icon
+        this.classList.toggle('fa-eye-slash');
+    });
+
+    function login(){
+        const username = document.getElementById('username').value.trim();
+        const passwordValue = password.value.trim();
+
+        // --- NEW: Improved error handling without using alert() ---
+        if(username === 'admin' && passwordValue === '1234'){
+            errorMessage.style.display = 'none';
+            localStorage.setItem('loggedIn','true');
+            window.location.href = 'admin.html'; // Or your main dashboard page
+        } else {
+            errorMessage.textContent = '❌ Username หรือ Password ไม่ถูกต้อง!';
+            errorMessage.style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin — Data Center Air Control</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg:#0b1220; --panel:#0f1724; --muted:#9aa7b2;
+      --accent:#2dd4bf; --accent2:#38bdf8; --danger:#ff6b6b; --success: #4ade80;
+      --secondary: #334155; --secondary-hover: #475569;
+      --radius:12px;
+    }
+    *{box-sizing:border-box;}
+    body {
+      margin:0; font-family:'Inter',sans-serif;
+      background:linear-gradient(180deg,#06111a 0%,#071422 100%);
+      color:#dbe7ef; min-height:100vh;
+    }
+
+    /* container */
+    .app {
+      max-width:1200px; margin:28px auto; padding:18px;
+      display:flex; flex-direction:column; gap:18px;
+    }
+
+    .topbar {
+      display:flex; justify-content:space-between; align-items:center;
+      background:rgba(255,255,255,0.02); padding:14px 18px; border-radius:var(--radius);
+      box-shadow:0 6px 20px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.04);
+    }
+    .brand h1 {margin:0;font-size:18px;}
+    .brand small{color:var(--muted);}
+    .btn-logout {
+      background:transparent;border:1px solid rgba(255,255,255,0.08);
+      color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;
+    }
+    .btn-logout:hover{background:rgba(255,255,255,0.03);color:#fff;}
+
+    /* content grid */
+    .grid {
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:16px;
+    }
+    .card {
+      background:rgba(255,255,255,0.02);
+      border-radius:var(--radius);
+      padding:16px;
+      box-shadow:0 6px 20px rgba(2,6,23,0.5);
+      border: 1px solid rgba(255,255,255,0.04);
+      color:#e6f0f5;
+    }
+    .col-3{grid-column: span 3;}
+    .col-4{grid-column: span 4;}
+    .col-5{grid-column: span 5;}
+    .col-7{grid-column: span 7;}
+    .col-12{grid-column: span 12;}
+    .title{font-weight:600;margin-bottom:8px;}
+    .value{font-size:28px;font-weight:800;}
+    .muted{color:var(--muted);font-size:13px;}
+    
+    .badge{padding:6px 10px;border-radius:8px;font-weight:700; font-size: 18px;}
+    .badge.ok{background:linear-gradient(90deg, #2dd4bf55, #2dd4bf22); color:var(--accent)}
+    .badge.warn{background:linear-gradient(90deg, #ff6b6b55, #ff6b6b22); color:var(--danger)}
+
+    /* small controls */
+    .switch {width:50px;height:26px;background:#1a2733;border-radius:20px;position:relative;cursor:pointer;}
+    .dot {width:20px;height:20px;border-radius:50%;background:#d7eaf2;position:absolute;left:3px;top:3px;transition:all .2s;}
+    .switch.on{background:linear-gradient(90deg,var(--accent),var(--accent2));}
+    .switch.on .dot{left:27px;background:white;}
+
+    .controls {display:flex; gap:8px; margin-top:12px;}
+    .ctrl-btn {flex:1;padding:8px;border-radius:8px;border:0;cursor:pointer;font-weight:700;color:#fff; transition: opacity 0.2s;}
+    .ctrl-btn:hover { opacity: 0.85; }
+    .btn-primary{background:var(--accent2)}
+    .btn-danger{background:var(--danger)}
+    .btn-accent{background:var(--accent)}
+    .btn-secondary{background:var(--secondary)}
+
+    /* form */
+    .form-row{display:flex;gap:8px;align-items:center}
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    input[type="number"], input[type="time"] {
+        padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);
+        background:transparent; color:inherit; font-family: inherit; width: 100%;
+    }
+    
+    /* table */
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{padding:10px 8px;text-align:left;color:var(--muted);border-bottom:1px solid rgba(255,255,255,0.04)}
+    th{color:#98aab5;font-size:12px;text-transform:uppercase;}
+    
+    /* Pagination */
+    .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+    .pagination button { background: var(--secondary); color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .pagination button:disabled { background: #222c3a; cursor: not-allowed; opacity: 0.5; }
+    .pagination button.active { background: var(--accent2); color: #021018; }
+    
+    /* Toast Notification */
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; }
+    .toast { background-color: #1a2733; color: #fff; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      border-left: 4px solid var(--accent2); display: flex; align-items: center; gap: 10px;
+      animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards; margin-bottom: 10px;
+    }
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--danger); }
+    .toast i { font-size: 18px; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; transform: translateX(100%); } }
+
+    /* Utility classes */
+    .d-flex {display: flex;}
+    .align-items-center {align-items: center;}
+    .gap-3 {gap: 16px;}
+    .mt-3 {margin-top: 16px;}
+
+    @media (max-width:1000px){
+      .grid{grid-template-columns:repeat(6,1fr)}
+      .col-12, .col-7, .col-5, .col-4 {grid-column:span 6}
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<script>
+  if(localStorage.getItem('loggedIn')!=='true'){ window.location.href='login.html'; }
+</script>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand">
+      <h1>Data Center Air Control</h1>
+      <small>Admin Panel</small>
+    </div>
+    <button class="btn-logout" id="logoutBtn"><i class="fa fa-sign-out-alt"></i> Logout</button>
+  </div>
+
+  <main class="grid">
+    <div class="card col-4">
+        <div class="title">ค่าปัจจุบัน (Status)</div>
+          <div class="d-flex align-items-center gap-3" style="flex-wrap: wrap;">
+              <div>
+                  <div class="muted">อุณหภูมิ</div>
+                  <div class="value" id="dashTemp" style="color:var(--accent2)">-- °C</div>
+              </div>
+              <div>
+                  <div class="muted">ความชื้น</div>
+                  <div class="value" id="dashHum" style="color:var(--accent)">-- %</div>
+              </div>
+              <div>
+                  <div class="muted">สถานะแอร์</div>
+                  <div id="dashAC" class="badge ok">--</div>
+              </div>
+          </div>
+    </div>
+      
+    <div class="card col-5">
+      <div class="title">แผงควบคุม (Control Panel)</div>
+      <div style="display:flex;align-items:center;gap:12px; margin-bottom: 12px;">
+        <div id="acSwitch" class="switch"><div class="dot"></div></div>
+        <div>
+          <div style="font-weight:700" id="acStatus">--</div>
+          <div class="muted">ตั้งไว้: <span id="setTemp">--°C</span> • โหมด: <span id="acMode">--</span></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn minus btn-secondary" id="tempDown">- ลด</button>
+        <button class="ctrl-btn plus btn-secondary" id="tempUp">+ เพิ่ม</button>
+        <button class="ctrl-btn mode btn-accent" id="modeBtn"><i class="fa fa-sync"></i> โหมด</button>
+      </div>
+    </div>
+
+    <div class="card col-3">
+        <div class="title">ตั้งค่า (Settings)</div>
+        <div class="form-group" style="margin-top:0;">
+            <label class="muted" style="font-size: 12px;">Temp Alert (°C)</label>
+            <div class="d-flex" style="gap: 8px;">
+                <input type="number" id="thLow" placeholder="ต่ำสุด">
+                <input type="number" id="thHigh" placeholder="สูงสุด">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="muted" style="font-size: 12px;">ตั้งเวลาเปิด (Schedule)</label>
+            <div class="d-flex" style="gap: 8px;">
+                <input type="time" id="schedTimeOn">
+                <button class="ctrl-btn btn-primary" id="schedSetOn" style="flex: 0; padding: 8px 12px;"><i class="fa fa-save"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card col-12">
+      <div class="title">กราฟย้อนหลัง (Chart)</div>
+      <div style="position: relative; height: 300px;">
+        <canvas id="dashChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card col-12">
+      <div class="title">Logs (ตารางข้อมูล)</div>
+      <div style="margin-top:12px;overflow-x:auto">
+        <table id="logsTable">
+          <thead><tr><th>Time</th><th>Temp (°C)</th><th>Hum (%)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="logsPagination"></div>
+    </div>
+  </main>
+
+  <footer style="text-align:center;color:var(--muted);font-size:13px; margin-top: 16px;">
+     Last Updated: <span id="lastUpdatedTime">--</span>
+  </footer>
+</div>
+
+<script>
+/* ============================
+  Toast Notification Function
+============================ */
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icons = { info: 'fa-circle-info', success: 'fa-check-circle', error: 'fa-times-circle' };
+  toast.innerHTML = `<i class="fa ${icons[type]}"></i><p>${message}</p>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 3000);
+}
+
+/* ============================
+  State & Chart Configuration
+============================ */
+const state = {
+  sensorIntervalSec: 5,
+  setTemp: 25,
+  acOn: false,
+  acMode: 'Cool',
+  thresholds: { high: 35, low: 20 },
+  logs: [],
+  logsCurrentPage: 1,
+  logsPerPage: 10
+};
+let dataFetchInterval = null;
+
+const dashCtx = document.getElementById('dashChart').getContext('2d');
+const dashChart = new Chart(dashCtx, {
+  type:'line',
+  data:{ labels: [], datasets:[
+    { label:'Temp', data:[], borderColor:getComputedStyle(document.documentElement).getPropertyValue('--accent2').trim(), backgroundColor:'rgba(56,189,248,0.1)', tension:0.3, borderWidth: 2, fill: true },
+    { label:'Hum', data:[], borderColor:getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(), backgroundColor:'rgba(45,212,191,0.1)', tension:0.3, borderWidth: 2, fill: true }
+  ]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position: 'top'}},
+    scales:{
+        y:{ min:0,max:100, grid: { color: 'rgba(255,255,255,0.05)'}, ticks: { color: 'var(--muted)'} },
+        x:{ grid: { color: 'rgba(255,255,255,0.05)'}, ticks: { color: 'var(--muted)'}}
+    }
+  }
+});
+
+/* ============================
+  CORE: DATA MOCKING & UI Updates
+============================ */
+function mockInitializeApp() {
+  console.warn("Using Mock Data for Demonstration");
+  state.setTemp = 24;
+  state.acOn = true;
+  state.acMode = 'Cool';
+  state.thresholds = { high: 32, low: 22 };
+  
+  state.logs = [];
+  for (let i = 100; i >= 0; i--) {
+    const time = new Date(Date.now() - i * 5 * 60000).toISOString().slice(0, 19).replace('T', ' ');
+    const temp = (25 + Math.random() * 5).toFixed(1);
+    const hum = (50 + Math.random() * 10).toFixed(1);
+    state.logs.push({ time, temp, hum });
+  }
+  
+  initUI();
+  const latest = state.logs[state.logs.length - 1];
+  updateDashboard(latest.temp, latest.hum);
+  
+  if (dataFetchInterval) clearInterval(dataFetchInterval);
+  dataFetchInterval = setInterval(() => {
+    const temp = (25 + Math.random() * 5);
+    const hum = (50 + Math.random() * 10);
+    const newLog = { time: new Date().toISOString().slice(0, 19).replace('T', ' '), temp: temp.toFixed(1), hum: hum.toFixed(1) };
+    state.logs.push(newLog);
+    updateDashboard(temp, hum);
+    if (document.querySelector('#logsTable tbody').childElementCount < state.logsPerPage) {
+        renderLogsTable();
+    }
+  }, state.sensorIntervalSec * 1000);
+
+  showToast('แสดงผลด้วยข้อมูลจำลอง', 'info');
+}
+
+/* ============================
+  UI RENDER FUNCTIONS
+============================ */
+function initUI() {
+  document.getElementById('thHigh').value = state.thresholds.high;
+  document.getElementById('thLow').value = state.thresholds.low;
+  updateACStatusUI();
+  renderLogsTable();
+}
+
+function updateDashboard(temp, hum) {
+  document.getElementById('dashTemp').textContent = `${parseFloat(temp).toFixed(1)} °C`;
+  document.getElementById('dashHum').textContent = `${parseFloat(hum).toFixed(1)} %`;
+  document.getElementById('lastUpdatedTime').textContent = new Date().toLocaleString('th-TH');
+  
+  const chart = dashChart.data;
+  chart.labels.push(new Date().toLocaleTimeString('th-TH'));
+  chart.datasets[0].data.push(temp);
+  chart.datasets[1].data.push(hum);
+  
+  if(chart.labels.length > 20) {
+    chart.labels.shift();
+    chart.datasets.forEach(dataset => dataset.data.shift());
+  }
+  dashChart.update('none');
+}
+
+function updateACStatusUI() {
+  document.getElementById('setTemp').textContent = `${state.setTemp}°C`;
+  document.getElementById('acMode').textContent = state.acMode;
+  document.getElementById('acStatus').textContent = state.acOn ? 'เปิด (AUTO)' : 'ปิด';
+  document.getElementById('acSwitch').classList.toggle('on', state.acOn);
+  document.getElementById('dashAC').textContent = state.acOn ? 'เปิด' : 'ปิด';
+  document.getElementById('dashAC').className = state.acOn ? 'badge ok' : 'badge warn';
+}
+
+function renderLogsTable(){
+  const tbody = document.querySelector('#logsTable tbody');
+  tbody.innerHTML = '';
+  const startIndex = (state.logsCurrentPage - 1) * state.logsPerPage;
+  const endIndex = startIndex + state.logsPerPage;
+  const pageLogs = [...state.logs].reverse().slice(startIndex, endIndex);
+  
+  pageLogs.forEach(r => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.time}</td><td>${r.temp}</td><td>${r.hum}</td>`;
+    tbody.appendChild(tr);
+  });
+  renderPagination();
+}
+
+function renderPagination() {
+    const container = document.getElementById('logsPagination');
+    container.innerHTML = '';
+    const totalPages = Math.ceil(state.logs.length / state.logsPerPage);
+    if (totalPages <= 1) return;
+
+    // Prev button
+    const prevBtn = document.createElement('button');
+    prevBtn.innerHTML = '&laquo;';
+    prevBtn.disabled = state.logsCurrentPage === 1;
+    prevBtn.onclick = () => {
+        if(state.logsCurrentPage > 1) {
+            state.logsCurrentPage--;
+            renderLogsTable();
+        }
+    };
+    container.appendChild(prevBtn);
+
+    // Page buttons (simplified for brevity)
+    const pageBtn = document.createElement('button');
+    pageBtn.textContent = `Page ${state.logsCurrentPage} of ${totalPages}`;
+    pageBtn.classList.add('active');
+    pageBtn.disabled = true;
+    container.appendChild(pageBtn);
+
+    // Next button
+    const nextBtn = document.createElement('button');
+    nextBtn.innerHTML = '&raquo;';
+    nextBtn.disabled = state.logsCurrentPage === totalPages;
+    nextBtn.onclick = () => {
+        if(state.logsCurrentPage < totalPages) {
+            state.logsCurrentPage++;
+            renderLogsTable();
+        }
+    };
+    container.appendChild(nextBtn);
+}
+
+
+/* ============================
+  EVENT HANDLERS
+============================ */
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  localStorage.removeItem('loggedIn');
+  showToast('ออกจากระบบสำเร็จ');
+  setTimeout(() => window.location.href = 'index.html', 500);
+});
+
+// AC Controls
+document.getElementById('acSwitch').addEventListener('click', () => {
+    state.acOn = !state.acOn;
+    updateACStatusUI();
+    showToast(`สถานะแอร์: ${state.acOn ? 'เปิด' : 'ปิด'}`);
+});
+document.getElementById('tempUp').addEventListener('click', () => { state.setTemp++; updateACStatusUI(); });
+document.getElementById('tempDown').addEventListener('click', () => { state.setTemp--; updateACStatusUI(); });
+document.getElementById('modeBtn').addEventListener('click', () => {
+    const modes = ['Cool','Dry','Fan'];
+    state.acMode = modes[(modes.indexOf(state.acMode) + 1) % modes.length];
+    updateACStatusUI();
+    showToast(`เปลี่ยนโหมดเป็น: ${state.acMode}`);
+});
+
+// Settings
+document.getElementById('thHigh').addEventListener('change', (e) => {
+    state.thresholds.high = parseFloat(e.target.value);
+    showToast(`ตั้งค่าอุณหภูมิสูงสุดเป็น ${state.thresholds.high}°C`, 'success');
+});
+document.getElementById('thLow').addEventListener('change', (e) => {
+    state.thresholds.low = parseFloat(e.target.value);
+    showToast(`ตั้งค่าอุณหภูมิต่ำสุดเป็น ${state.thresholds.low}°C`, 'success');
+});
+document.getElementById('schedSetOn').addEventListener('click', () => {
+    const time = document.getElementById('schedTimeOn').value;
+    if(time){
+        showToast(`ตั้งเวลาเปิดแอร์ ${time} น.`, 'success');
+    } else {
+        showToast(`กรุณาเลือกเวลา`, 'error');
+    }
+});
+
+/* ============================
+  INITIAL CALL
+============================ */
+mockInitializeApp();
+</script>
+</body>
+</html>
